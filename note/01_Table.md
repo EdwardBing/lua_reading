@@ -236,5 +236,3 @@ lua5.3.5 源码学习
 	  return optimal;
 	}
 	```
-##### string [lua字符串](https://www.cnblogs.com/heartchord/p/4561308.html)
-- 
