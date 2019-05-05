@@ -116,3 +116,123 @@ static TString *createstrobj (lua_State *L, size_t l, int tag, unsigned int h) {
   return ts;
 }
 ```
+
+#### 字符串的哈希算法
+- Lua中字符串的哈希算法可以在luaS_hash函数中查看到。对于比较长的字符串（32字节以上），为了加快哈希过程，计算字符串哈希值是跳跃进行的。跳跃的步长（step）是由LUAI_HASHLIMIT宏控制的。
+```
+// str：字符串 l：字符串的长度 seed：随机数种子
+unsigned int luaS_hash (const char *str, size_t l, unsigned int seed) {
+  unsigned int h = seed ^ cast(unsigned int, l); //根据lstate.h中
+  size_t step = (l >> LUAI_HASHLIMIT) + 1;
+  for (; l >= step; l -= step)
+    h ^= ((h<<5) + (h>>2) + cast_byte(str[l - 1]));
+  return h;
+}
+// seed 见 lua_newstate
+// g->seed = makeseed(L); // string seed 创建到全局的表中
+```
+
+#### 短字字符的内部化
+- 简单来讲就是，传入字符串被放入字符串表stringtable的时候，先检查一下表中有没有相同的字符串，如果有则复用已有的字符串，如果没有则创建一个新的字符串。
+```
+lstring.h
+/*
+** checks whether short string exists and reuses it or creates a new one
+*/
+// 短字符串的内部化 检查时候有该字符，有再利用，否则创建一个新的字符串
+static TString *internshrstr (lua_State *L, const char *str, size_t l) {
+  TString *ts;
+  global_State *g = G(L);
+  unsigned int h = luaS_hash(str, l, g->seed);
+  // 知道目标串的链表
+  TString **list = &g->strt.hash[lmod(h, g->strt.size)];
+  lua_assert(str != NULL);  /* otherwise 'memcmp'/'memcpy' are undefined */
+  for (ts = *list; ts != NULL; ts = ts->u.hnext) {
+    if (l == ts->shrlen &&
+        (memcmp(str, getstr(ts), l * sizeof(char)) == 0)) {
+      /* found! */
+      // 因为lua的GC是分步执行的，不能保证创建字符的时候是否正在进行GC,
+      // 所以这里要检查下该字符串是否被GC标记
+      if (isdead(g, ts))  /* dead (but not collected yet)? */
+        changewhite(ts);  /* resurrect it */
+      return ts;
+    }
+  }
+  // 如果当前链表的长度大于最大长度则需要重新计算链表的resize * 2
+  if (g->strt.nuse >= g->strt.size && g->strt.size <= MAX_INT/2) {
+    luaS_resize(L, g->strt.size * 2);
+    list = &g->strt.hash[lmod(h, g->strt.size)];  /* recompute with new size */
+  }
+  // 没有找到，创建新的字符串
+  ts = createstrobj(L, l, LUA_TSHRSTR, h);
+  memcpy(getstr(ts), str, l * sizeof(char));
+  ts->shrlen = cast_byte(l);
+  ts->u.hnext = *list;
+  *list = ts;
+  g->strt.nuse++;
+  return ts;
+}
+```
+- stringtable的扩大及字符串的重新哈希; 当stringtable中的字符串数量（stringtable.muse域）超过预定容量（stringtable.size域）时，说明stringtable太拥挤，许多字符串可能都哈希到同一个维度中去，这将会降低stringtable的遍历效率。这个时候需要调用luaS_resize方法将stringtable的哈希链表数组扩大，重新排列所有字符串的位置。
+```
+// lstring.c
+/*
+** resizes the string table
+*/
+void luaS_resize (lua_State *L, int newsize) {
+  int i;
+  // 取得全局stringtable
+  stringtable *tb = &G(L)->strt;
+  if (newsize > tb->size) {  /* grow table if needed */
+    // 如果stringtable的新容量大于旧容量，重新分配
+    luaM_reallocvector(L, tb->hash, tb->size, newsize, TString *);
+    for (i = tb->size; i < newsize; i++)
+      tb->hash[i] = NULL;
+  }
+  // 根据新容量进行重新哈希
+  for (i = 0; i < tb->size; i++) {  /* rehash */
+    TString *p = tb->hash[i];
+    tb->hash[i] = NULL;
+    // 将每个哈希链表中的元素哈希到新的位置（头插法）
+    while (p) {  /* for each node in the list */
+      TString *hnext = p->hnext;  /* save next */
+      unsigned int h = lmod(p->hash, newsize);  /* new position */
+      p->hnext = tb->hash[h];  /* chain it */
+      tb->hash[h] = p;
+      p = hnext;
+    }
+  }
+  // 如果stringtable的新容量小于旧容量，那么要减小表的长度
+  if (newsize < tb->size) {  /* shrink table if needed */
+    /* vanishing slice should be empty */
+    lua_assert(tb->hash[newsize] == NULL && tb->hash[tb->size - 1] == NULL);
+    luaM_reallocvector(L, tb->hash, tb->size, newsize, TString *);
+  }
+  tb->size = newsize;
+}
+```
+
+#### 字符串的比较
+- 短字符串比较这里不再赘述，因为使用stringtable管理的，所以只需要比较地址就可以了
+```
+// lstring.h
+/*
+** equality for short strings, which are always internalized
+*/
+#define eqshrstr(a,b) check_exp((a)->tt == LUA_TSHRSTR, (a) == (b))
+```
+- 长字符串的比较策略
+- 首先对象地址相等的两个长字符串属于同一个实例，因此它们是相等的；然后对象地址不相等的情况下，当字符串长度不同时， 自然是不同的字符串 ，而长度相同 时， 则需要进行逐字节比较。
+```
+// lstring.c
+/*
+** equality for long strings
+*/
+int luaS_eqlngstr (TString *a, TString *b) {
+  size_t len = a->len;
+  lua_assert(a->tt == LUA_TLNGSTR && b->tt == LUA_TLNGSTR);
+  return (a == b) ||  /* same instance or... */
+    ((len == b->len) &&  /* equal length and ... */
+     (memcmp(getstr(a), getstr(b), len) == 0));  /* equal contents */
+}
+```
