@@ -1,9 +1,5 @@
-lua5.3.5 源码学习
-### 目录
-1. lua基本数据类型介绍
-2. lua table设计与实现
-3. string的设计与实现 [参考博客](https://www.cnblogs.com/heartchord/p/4561308.html)
-4. lua GC算法
+string的设计与实现 [参考博客](https://www.cnblogs.com/heartchord/p/4561308.html)
+
 
 ### string 
 - lua字符串内部被分为短字符串和长字符串，长字符串是为了处理http长文本所作出的优化。
