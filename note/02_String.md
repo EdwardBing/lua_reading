@@ -4,6 +4,7 @@ lua5.3.5 源码学习
 2. lua table设计与实现
 3. string的设计与实现 [参考博客](https://www.cnblogs.com/heartchord/p/4561308.html)
 4. lua GC算法
+----
 
 ### string 
 - lua字符串内部被分为短字符串和长字符串，长字符串是为了处理http长文本所作出的优化。
@@ -30,6 +31,7 @@ typedef struct TString {
 ![lua string](../pic/c02_01.png)
 	- lua字符串对象 = TString + 实际字符串数据
 	- TString结构 = GCObject指针 + 字符串信息数据
+----
 
 #### 短字符串与长字符串
 - lua字符串内建类型定义在lua.h中
@@ -57,6 +59,7 @@ typedef struct TString {
 #define LUAI_MAXSHORTLEN	40
 #endif
 ```
+----
 
 #### 字符串管理
 - 在lua中，字符串是被内化的一种数据结构，内化的意思就是说，每个存放lua字符串的变量，实际上存放的并不是一份字符串的数据副本，而是这份字符串的引用，因此，在lua中字符串是一个不可变的数据，然后呐，为了实现内化，在lua虚拟机中必然要存在一个全局的地方存放当前系统中的所有字符串，lua虚拟机使用一个散列通来管理字符串, global_State -> stringtable strt，结构图如下：
@@ -69,6 +72,7 @@ typedef struct stringtable {
   int size; // 字符串表最大字符串数量；
 } stringtable;
 ```
+----
 
 #### 字符串创建
 - 字符串的初始化 
@@ -116,6 +120,7 @@ static TString *createstrobj (lua_State *L, size_t l, int tag, unsigned int h) {
   return ts;
 }
 ```
+----
 
 #### 字符串的哈希算法
 - Lua中字符串的哈希算法可以在luaS_hash函数中查看到。对于比较长的字符串（32字节以上），为了加快哈希过程，计算字符串哈希值是跳跃进行的。跳跃的步长（step）是由LUAI_HASHLIMIT宏控制的。
@@ -131,6 +136,7 @@ unsigned int luaS_hash (const char *str, size_t l, unsigned int seed) {
 // seed 见 lua_newstate
 // g->seed = makeseed(L); // string seed 创建到全局的表中
 ```
+----
 
 #### 短字字符的内部化
 - 简单来讲就是，传入字符串被放入字符串表stringtable的时候，先检查一下表中有没有相同的字符串，如果有则复用已有的字符串，如果没有则创建一个新的字符串。
@@ -211,6 +217,7 @@ void luaS_resize (lua_State *L, int newsize) {
   tb->size = newsize;
 }
 ```
+----
 
 #### 字符串的比较
 - 短字符串比较这里不再赘述，因为使用stringtable管理的，所以只需要比较地址就可以了
@@ -236,3 +243,4 @@ int luaS_eqlngstr (TString *a, TString *b) {
      (memcmp(getstr(a), getstr(b), len) == 0));  /* equal contents */
 }
 ```
+----
