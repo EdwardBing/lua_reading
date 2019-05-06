@@ -164,25 +164,31 @@ void luaS_remove (lua_State *L, TString *ts) {
 /*
 ** checks whether short string exists and reuses it or creates a new one
 */
+// 短字符串的内部化 检查时候有该字符，有再利用，否则创建一个新的字符串
 static TString *internshrstr (lua_State *L, const char *str, size_t l) {
   TString *ts;
   global_State *g = G(L);
   unsigned int h = luaS_hash(str, l, g->seed);
+  // 知道目标串的链表
   TString **list = &g->strt.hash[lmod(h, g->strt.size)];
   lua_assert(str != NULL);  /* otherwise 'memcmp'/'memcpy' are undefined */
   for (ts = *list; ts != NULL; ts = ts->u.hnext) {
     if (l == ts->shrlen &&
         (memcmp(str, getstr(ts), l * sizeof(char)) == 0)) {
       /* found! */
+      // 因为lua的GC是分步执行的，不能保证创建字符的时候是否正在进行GC,
+      // 所以这里要检查下该字符串是否被GC标记
       if (isdead(g, ts))  /* dead (but not collected yet)? */
         changewhite(ts);  /* resurrect it */
       return ts;
     }
   }
+  // 如果当前链表的长度大于最大长度则需要重新计算链表的resize
   if (g->strt.nuse >= g->strt.size && g->strt.size <= MAX_INT/2) {
     luaS_resize(L, g->strt.size * 2);
     list = &g->strt.hash[lmod(h, g->strt.size)];  /* recompute with new size */
   }
+  // 没有找到，创建新的字符串
   ts = createstrobj(L, l, LUA_TSHRSTR, h);
   memcpy(getstr(ts), str, l * sizeof(char));
   ts->shrlen = cast_byte(l);
