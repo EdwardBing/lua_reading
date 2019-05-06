@@ -1,9 +1,6 @@
 string的设计与实现 [参考博客](https://www.cnblogs.com/heartchord/p/4561308.html)
 
-<<<<<<< HEAD
 ----
-=======
->>>>>>> d957ea1fd542b77f746deeb51f10c6e14c4470a3
 
 ### string 
 - lua字符串内部被分为短字符串和长字符串，长字符串是为了处理http长文本所作出的优化。
@@ -242,7 +239,5 @@ int luaS_eqlngstr (TString *a, TString *b) {
      (memcmp(getstr(a), getstr(b), len) == 0));  /* equal contents */
 }
 ```
-<<<<<<< HEAD
 ----
-=======
->>>>>>> d957ea1fd542b77f746deeb51f10c6e14c4470a3
+
