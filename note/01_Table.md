@@ -1,4 +1,3 @@
-
 ##### Table [ltable.c解析](https://blog.csdn.net/u013517637/article/details/78899279)
 1. 我们知道在lua中一切数据结构皆是table，这是lua语言的一大特色。但是lua的源码实为了效率，把table分为了两部分即数组部分和哈希部分。
 	Table的内部数据结构被定义在了lobject.h中
