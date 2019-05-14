@@ -41,10 +41,10 @@
 */
 
 
-
+// minimum size
 #define MINSIZEARRAY	4
 
-
+// 内部API 管理可变长数组
 void *luaM_growaux_ (lua_State *L, void *block, int *size, size_t size_elems,
                      int limit, const char *what) {
   void *newblock;

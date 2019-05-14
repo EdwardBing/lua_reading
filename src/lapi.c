@@ -140,7 +140,10 @@ LUA_API lua_CFunction lua_atpanic (lua_State *L, lua_CFunction panicf) {
   return old;
 }
 
-
+// 这里把一个全局变量地址赋给了 version 域。这样可以起到一个巧妙的作用
+// 用户可以在运行是获取传入参数L的 version 地址， 与自身链入的lua虚拟机
+// 实现代码的这个变量， 知道创建这个L的代码是否和自身代码的版本是否一致。
+// 这是比版本号更强的检查
 LUA_API const lua_Number *lua_version (lua_State *L) {
   static const lua_Number version = LUA_VERSION_NUM;
   if (L == NULL) return &version;

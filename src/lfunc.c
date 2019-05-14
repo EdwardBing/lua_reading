@@ -21,7 +21,7 @@
 #include "lstate.h"
 
 
-
+//创建一个C闭包
 CClosure *luaF_newCclosure (lua_State *L, int n) {
   GCObject *o = luaC_newobj(L, LUA_TCCL, sizeCclosure(n));
   CClosure *c = gco2ccl(o);
@@ -29,7 +29,7 @@ CClosure *luaF_newCclosure (lua_State *L, int n) {
   return c;
 }
 
-
+//创建一个lua闭包
 LClosure *luaF_newLclosure (lua_State *L, int n) {
   GCObject *o = luaC_newobj(L, LUA_TLCL, sizeLclosure(n));
   LClosure *c = gco2lcl(o);

@@ -51,6 +51,8 @@
 /*
 ** thread state + extra space
 */
+// 这里，主线程必须定义在结构的前面，
+// 否则关闭虚拟机的时候（如下代码 close_state ）就无法正确的释放内存
 typedef struct LX {
   lu_byte extra_[LUA_EXTRASPACE];
   lua_State l;
@@ -199,15 +201,15 @@ static void init_registry (lua_State *L, global_State *g) {
 /*
 ** open parts of the state that may cause memory-allocation errors.
 ** ('g->version' != NULL flags that the state was completely build)
-*/
+*/ 
 static void f_luaopen (lua_State *L, void *ud) {
   global_State *g = G(L);
   UNUSED(ud);
   stack_init(L, L);  /* init stack */
-  init_registry(L, g);
-  luaS_init(L);
-  luaT_init(L);
-  luaX_init(L);
+  init_registry(L, g); // 初始化主线程的数据栈
+  luaS_init(L); // 初始化注册表
+  luaT_init(L); // 初始化原表用的字符串
+  luaX_init(L); // 初始化词法分析用的串 token
   g->gcrunning = 1;  /* allow gc */
   g->version = lua_version(NULL);
   luai_userstateopen(L);
@@ -295,7 +297,7 @@ void luaE_freethread (lua_State *L, lua_State *L1) {
 LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   int i;
   lua_State *L;
-  global_State *g;
+  global_State *g; //全局状态机
   LG *l = cast(LG *, (*f)(ud, NULL, LUA_TTHREAD, sizeof(LG)));
   if (l == NULL) return NULL;
   L = &l->l.l;
@@ -304,7 +306,7 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   L->tt = LUA_TTHREAD;
   g->currentwhite = bitmask(WHITE0BIT);
   L->marked = luaC_white(g);
-  preinit_thread(L, g);
+  preinit_thread(L, g); //使用一直的预初始化线程 并不分配内存，以避免错误
   g->frealloc = f;
   g->ud = ud;
   g->mainthread = L;
@@ -324,11 +326,12 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   g->weak = g->ephemeron = g->allweak = NULL;
   g->twups = NULL;
   g->totalbytes = sizeof(LG);
-  g->GCdebt = 0;
+  g->GCdebt = 0; // 内部感知内存大小 尝试GC操作
   g->gcfinnum = 0;
   g->gcpause = LUAI_GCPAUSE;
   g->gcstepmul = LUAI_GCMUL;
   for (i=0; i < LUA_NUMTAGS; i++) g->mt[i] = NULL;
+  // 错误检测机制 分配内存错误的 关闭当前线程
   if (luaD_rawrunprotected(L, f_luaopen, NULL) != LUA_OK) {
     /* memory allocation error: free partial state */
     close_state(L);
