@@ -1,3 +1,10 @@
+### 目录
+1. table
+2. string
+3. GC
+4. Closure 闭包
+
+
 ##### lua基本数据类型简述
 1. 首先lua介绍lua的8种基本数据类型：
 	- 定义在lua.h

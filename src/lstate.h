@@ -74,7 +74,7 @@ struct lua_longjmp;  /* defined in ldo.c */
 
 
 typedef struct stringtable {
-  TString **hash; // 指向Tstring *的指针他并不是一个二维数组
+  TString **hash; // 指向Tstring *的指针 他并不是一个二维数组
   int nuse;  /* number of elements */
   int size;
 } stringtable;
@@ -139,7 +139,7 @@ typedef struct global_State {
   void *ud;         /* auxiliary data to 'frealloc' 作为分配内存的辅助数据 */
   l_mem totalbytes;  /* number of bytes currently allocated - GCdebt */
   l_mem GCdebt;  /* bytes allocated not yet compensated by the collector  收集器尚未补偿分配的字节 */
-  lu_mem GCmemtrav;  /* memory traversed by the GC */
+  lu_mem GCmemtrav;  /* memory traversed by the GC */ // GC遍历的内存
   lu_mem GCestimate;  /* an estimate of the non-garbage memory in use */
   stringtable strt;  /* hash table for strings */
   TValue l_registry;

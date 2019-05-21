@@ -20,6 +20,12 @@
 		```
 			#define CommonHeader	GCObject *next; lu_byte tt; lu_byte marked
 		```
+	- tt_是一个8 bits 的类型标记字段，被分成3个部分：
+		```
+		0-3位，表示大类型
+		4-5位，表示子类型
+		第6位，表示是否可以垃圾回收
+		```
 	- lua_byte flags 这是一个lua的byte类型的数据，用于表示表中提供了哪些元方法，比如是否提供了元方法_index，该数据最开始设置为1，如果进行查找一次，比如_index，如果存在，这该元方法对应的flag bit设置为0，在下一次查找的时候，只需要比较这个bit即可，对应的元方法在ltm.h中
 		```
 		typedef unsigned char lu_byte;

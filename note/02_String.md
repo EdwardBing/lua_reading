@@ -1,5 +1,4 @@
 string的设计与实现 [参考博客](https://www.cnblogs.com/heartchord/p/4561308.html)
-
 ----
 
 ### string 
@@ -240,4 +239,10 @@ int luaS_eqlngstr (TString *a, TString *b) {
 }
 ```
 ----
+
+#### 字符串的remove
+- 我们知道短字符是被global_state的`strt`链表上等到GC单步执行的时候会调用到这函数`sweepstep` -> `sweeplist`
+```
+
+```
 

@@ -208,9 +208,9 @@ void luaC_fix (lua_State *L, GCObject *o) {
 GCObject *luaC_newobj (lua_State *L, int tt, size_t sz) {
   global_State *g = G(L);
   GCObject *o = cast(GCObject *, luaM_newobject(L, novariant(tt), sz));
-  o->marked = luaC_white(g);
+  o->marked = luaC_white(g); // 初始化GC对象都为white
   o->tt = tt;
-  o->next = g->allgc;
+  o->next = g->allgc; // 把gc对象放到globa_State allgc 链表中
   g->allgc = o;
   return o;
 }
@@ -709,6 +709,7 @@ static void freeobj (lua_State *L, GCObject *o) {
     case LUA_TTHREAD: luaE_freethread(L, gco2th(o)); break;
     case LUA_TUSERDATA: luaM_freemem(L, o, sizeudata(gco2u(o))); break;
     case LUA_TSHRSTR:
+      //
       luaS_remove(L, gco2ts(o));  /* remove it from hash table */
       luaM_freemem(L, o, sizelstring(gco2ts(o)->shrlen));
       break;
@@ -1047,14 +1048,14 @@ static lu_mem singlestep (lua_State *L) {
   switch (g->gcstate) {
     case GCSpause: {
       g->GCmemtrav = g->strt.size * sizeof(GCObject*);
-      restartcollection(g);
+      restartcollection(g); // 注意这个函数，重启一次gc，重置所有的灰色链表
       g->gcstate = GCSpropagate;
       return g->GCmemtrav;
     }
     case GCSpropagate: {
       g->GCmemtrav = 0;
       lua_assert(g->gray);
-      propagatemark(g);
+      propagatemark(g); // 持续遍历对象的关联对象 gray to black
        if (g->gray == NULL)  /* no more gray objects? */
         g->gcstate = GCSatomic;  /* finish propagate phase */
       return g->GCmemtrav;  /* memory traversed in this step */

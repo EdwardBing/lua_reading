@@ -299,15 +299,16 @@ LUA_API int (lua_isyieldable) (lua_State *L);
 ** garbage-collection function and options
 */
 
-#define LUA_GCSTOP		0
-#define LUA_GCRESTART		1
-#define LUA_GCCOLLECT		2
-#define LUA_GCCOUNT		3
-#define LUA_GCCOUNTB		4
-#define LUA_GCSTEP		5
-#define LUA_GCSETPAUSE		6
-#define LUA_GCSETSTEPMUL	7
-#define LUA_GCISRUNNING		9
+#define LUA_GCSTOP    0   //停止收集器
+#define LUA_GCRESTART   1 //重启收集器
+#define LUA_GCCOLLECT   2 //执行一轮完整的垃圾收集周期，收集并释放所有不可到达的对象，这时默认选项
+#define LUA_GCCOUNT   3   //返回lua当前使用的内存数量，单位是KB
+#define LUA_GCCOUNTB    4 //返回lua当前使用的内存数量的千字节余数。
+#define LUA_GCSTEP    5   //执行一些垃圾收集工作
+#define LUA_GCSETPAUSE    6 //设置收集器的pause参数，其值由data参数指定，表示一个百分比。当data为100时，pause参数设为1（100%）。这个参数决定收集器在周期之间等待的时间
+#define LUA_GCSETSTEPMUL  7 //设置收集器的stepmul参数，其值也是由data参数指定，表示一个百分比。这个参数决定收集器的工作速度
+#define LUA_GCISRUNNING   9 //收集器是否在工作
+
 
 LUA_API int (lua_gc) (lua_State *L, int what, int data);
 
