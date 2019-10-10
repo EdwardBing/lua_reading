@@ -81,7 +81,7 @@
 #define FINALIZEDBIT	3  /* object has been marked for finalization */
 /* bit 7 is currently used by tests (luaL_checkmemory) */
 
-#define WHITEBITS	bit2mask(WHITE0BIT, WHITE1BIT)
+#define WHITEBITS	bit2mask(WHITE0BIT, WHITE1BIT) // 11
 
 
 #define iswhite(x)      testbits((x)->marked, WHITEBITS)
@@ -92,7 +92,8 @@
 #define tofinalize(x)	testbit((x)->marked, FINALIZEDBIT)
 
 #define otherwhite(g)	((g)->currentwhite ^ WHITEBITS)
-#define isdeadm(ow,m)	(!(((m) ^ WHITEBITS) & (ow)))
+#define isdeadm(ow,m)	(!(((m) ^ WHITEBITS) & (ow))) // (01 ^ 11) & 01 --> 10 & 01 --> 0 // (10 ^ 11) & 01 --> 01 & 01 --> 01 --> 1
+	
 #define isdead(g,v)	isdeadm(otherwhite(g), (v)->marked)
 
 #define changewhite(x)	((x)->marked ^= WHITEBITS)
@@ -114,7 +115,7 @@
 /* more often than not, 'pre'/'pos' are empty */
 #define luaC_checkGC(L)		luaC_condGC(L,(void)0,(void)0)
 
-
+// for TValue
 #define luaC_barrier(L,p,v) (  \
 	(iscollectable(v) && isblack(p) && iswhite(gcvalue(v))) ?  \
 	luaC_barrier_(L,obj2gco(p),gcvalue(v)) : cast_void(0))
@@ -123,6 +124,7 @@
 	(iscollectable(v) && isblack(p) && iswhite(gcvalue(v))) ? \
 	luaC_barrierback_(L,p) : cast_void(0))
 
+// for GCObject
 #define luaC_objbarrier(L,p,o) (  \
 	(isblack(p) && iswhite(o)) ? \
 	luaC_barrier_(L,obj2gco(p),obj2gco(o)) : cast_void(0))

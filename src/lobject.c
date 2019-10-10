@@ -450,8 +450,8 @@ int luaO_utf8esc (char *buff, unsigned long x) {
 ** Convert a number object to a string
 */
 // 把一个数字对象转换成字符串
-// lua_integer2str的作用就是把一个整数转换成字符串，定义在luaconf.h中
-// lua_number2str的作用就是把一个浮点型数据转换成字符串，定义在luaconf.h中
+// lua_integer2str 的作用就是把一个整数转换成字符串，定义在luaconf.h中
+// lua_number2str 的作用就是把一个浮点型数据转换成字符串，定义在luaconf.h中
  
 // strspn的原型为：size_t strspn (const char *s,const char * accept)
 // strspn()从参数s 字符串的开头计算连续的字符，而这些字符都完全是accept 所指字符串中的字符。
@@ -496,7 +496,7 @@ static void pushstr (lua_State *L, const char *str, size_t l) {
  
 // luaO_pushvfstring的作用是把luaO_pushfstring传进来的可变参数中的值，一个一个的加入lua栈中
 // 这个函数仅支持'%d', '%c', '%f', '%p', and '%s'转换格式，外加lua的'%I' and '%U'
-// strchr作用是找出fmt中首次出现'%'的位置，并返回其指针
+// strchr 作用是找出fmt中首次出现'%'的位置，并返回其指针
 // 首先，e的位置就是%的位置，然后调用pushstr向栈中=顶压入一个字符串，并栈顶自增1
 // 下面就是不同格式的参数压入规则了
 // 如果是's'的话，代表以'\0'结尾的字符串，通过va_arg返回可变的参数，va_arg的第二个参数是你要返回的参数的类型
@@ -574,7 +574,6 @@ const char *luaO_pushvfstring (lua_State *L, const char *fmt, va_list argp) {
  
 // luaO_pushfstring的作用是把一个字符串按照固定格式压入L栈中，比如说：
 // luaO_pushfstring(L, "%s:%d: %s", buff, line, msg)   把一个调试信息格式的打印日志压入L栈中
- 
 // va_list,va_start,va_end 这些宏定义在stdarg.h中
 // va_list定义了一个可变参数argp
 // va_start初始化了argp，第一个参数是argp，第二个参数是fmt（可变参数的前一个参数）

@@ -53,7 +53,7 @@ void luaF_initupvals (lua_State *L, LClosure *cl) {
   }
 }
 
-
+// 把数据栈上的值转换为upvalue
 UpVal *luaF_findupval (lua_State *L, StkId level) {
   UpVal **pp = &L->openupval;
   UpVal *p;
@@ -79,7 +79,10 @@ UpVal *luaF_findupval (lua_State *L, StkId level) {
   return uv;
 }
 
-
+// 当离开一个代码块时，这个代码块中定义的局部变量变得不可见。upval 会调整数据栈指针，销毁掉这些
+// 变量。若这些栈值被某些闭包以开放 `upvalue` 的形式引用，就需要把它们关闭。`luaF_close` 实现了这一系列
+// 关闭操作：删掉已经无人引用的 `upvalue` 、把数据从数据栈上复制到 `UpVal` 结构中，并修正 `UpVal` 中的指
+// 针 `v`
 void luaF_close (lua_State *L, StkId level) {
   UpVal *uv;
   while (L->openupval != NULL && (uv = L->openupval)->v >= level) {
@@ -120,7 +123,6 @@ Proto *luaF_newproto (lua_State *L) {
   f->source = NULL;
   return f;
 }
-
 
 void luaF_freeproto (lua_State *L, Proto *f) {
   luaM_freearray(L, f->code, f->sizecode);

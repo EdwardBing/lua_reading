@@ -63,7 +63,7 @@
 ** 'makewhite' erases all color bits then sets only the current white
 ** bit
 */
-#define maskcolors	(~(bitmask(BLACKBIT) | WHITEBITS))
+#define maskcolors	(~(bitmask(BLACKBIT) | WHITEBITS)) // 111 | 11
 #define makewhite(g,x)	\
  (x->marked = cast_byte((x->marked & maskcolors) | luaC_white(g)))
 
@@ -232,10 +232,14 @@ GCObject *luaC_newobj (lua_State *L, int tt, size_t sz) {
 ** to appropriate list to be visited (and turned black) later. (Open
 ** upvalues are already linked in 'headuv' list.)
 */
+// 时间复杂度是O(1) 不会递归标记相关对象
+// O(1)使得标记过程可以均匀分摊在逐个短小的时间片中，不至于停留太长时间
 static void reallymarkobject (global_State *g, GCObject *o) {
  reentry:
-  white2gray(o);
+  white2gray(o); //首先通过宏来标记为灰色
+  // 下面再根据具体的对象类型，当一个对象的所有关联的对象都被标记后，再从灰色转化为黑色
   switch (o->tt) {
+    // 对于
     case LUA_TSHRSTR: {
       gray2black(o);
       g->GCmemtrav += sizelstring(gco2ts(o)->shrlen);
@@ -246,14 +250,15 @@ static void reallymarkobject (global_State *g, GCObject *o) {
       g->GCmemtrav += sizelstring(gco2ts(o)->u.lnglen);
       break;
     }
+    //标记LUA_TUSERDATA的原表和环境表
     case LUA_TUSERDATA: {
       TValue uvalue;
       markobjectN(g, gco2u(o)->metatable);  /* mark its metatable */
       gray2black(o);
       g->GCmemtrav += sizeudata(gco2u(o));
-      getuservalue(g->mainthread, gco2u(o), &uvalue);
+      getuservalue(g->mainthread, gco2u(o), &uvalue); // 把o的值给uvalue
       if (valiswhite(&uvalue)) {  /* markvalue(g, &uvalue); */
-        o = gcvalue(&uvalue);
+        o = gcvalue(&uvalue); // 获取uvalue并赋值给o
         goto reentry;
       }
       break;
@@ -744,7 +749,7 @@ static GCObject **sweeplist (lua_State *L, GCObject **p, lu_mem count) {
       *p = curr->next;  /* remove 'curr' from list */
       freeobj(L, curr);  /* erase 'curr' */
     }
-    else {  /* change mark to 'white' */
+    else {  /* change mark to 'white' */ 11 & m 10 -->
       curr->marked = cast_byte((marked & maskcolors) | white);
       p = &curr->next;  /* go to next element */
     }
@@ -939,7 +944,7 @@ void luaC_checkfinalizer (lua_State *L, GCObject *o, Table *mt) {
 ** less than PAUSEADJ bytes).
 */
 static void setpause (global_State *g) {
-  l_mem threshold, debt;
+  l_mem threshold, debt; // threshold 内存阀值 当设置gcpause为200时 pause设定为200时就会让收集器等到总内存使用量达到之前的两倍时才开始新的GC循环
   l_mem estimate = g->GCestimate / PAUSEADJ;  /* adjust 'estimate' */
   lua_assert(estimate > 0);
   threshold = (g->gcpause < MAX_LMEM / estimate)  /* overflow? */
@@ -979,7 +984,7 @@ void luaC_freeallobjects (lua_State *L) {
   lua_assert(g->strt.nuse == 0);
 }
 
-
+// 一次性的将 grayagain 链表中的所有对象扫描和标记
 static l_mem atomic (lua_State *L) {
   global_State *g = G(L);
   l_mem work;
@@ -987,14 +992,14 @@ static l_mem atomic (lua_State *L) {
   GCObject *grayagain = g->grayagain;  /* save original list */
   lua_assert(g->ephemeron == NULL && g->weak == NULL);
   lua_assert(!iswhite(g->mainthread));
-  g->gcstate = GCSinsideatomic;
+  g->gcstate = GCSinsideatomic; //
   g->GCmemtrav = 0;  /* start counting work */
   markobject(g, L);  /* mark running thread */
   /* registry and global metatables may be changed by API */
   markvalue(g, &g->l_registry);
   markmt(g);  /* mark global metatables */
   /* remark occasional upvalues of (maybe) dead threads */
-  remarkupvals(g);
+  remarkupvals(g); //再次标记
   propagateall(g);  /* propagate changes */
   work = g->GCmemtrav;  /* stop counting (do not recount 'grayagain') */
   g->gray = grayagain;
@@ -1137,7 +1142,7 @@ void luaC_step (lua_State *L) {
   do {  /* repeat until pause or enough "credit" (negative debt) */
     lu_mem work = singlestep(L);  /* perform one single step */
     debt -= work;
-  } while (debt > -GCSTEPSIZE && g->gcstate != GCSpause);
+  } while (debt > -GCSTEPSIZE && g->gcstate != GCSpause); // 从这里可以看出当debt小于-GCSTEPSIZE 时那么GC将是一步到位执行完毕的 
   if (g->gcstate == GCSpause)
     setpause(g);  /* pause until next cycle */
   else {

@@ -762,7 +762,7 @@ static void checkmode (lua_State *L, const char *mode, const char *x) {
   }
 }
 
-
+// 把加载到内存中的函数原型和upvalue绑定起来
 static void f_parser (lua_State *L, void *ud) {
   LClosure *cl;
   struct SParser *p = cast(struct SParser *, ud);

@@ -1,6 +1,13 @@
 string的设计与实现 [参考博客](https://www.cnblogs.com/heartchord/p/4561308.html)
 ----
 
+- Lua在字符串实现上使用内化的优点在于。
+
+- 时间上。进行字符串的查找和比较操作的时候性能会有很大的提高。传统的字符串的查找和比较，需要遍历字符串的每一个字符，时间复杂度取决于字符串的长度，是线性递增的。而Lua进行字符串的比较和查询的时候，首先去比较字符串的hash值，这一步是O(1)的时间复杂度，这一步没有比较出来后，会对具体的两个字符串进行长度比较，最后仍然没有比较出来，才会进行逐位比较。大多情况下，前2步会对绝大多数情况进行过滤，字符串比较和查询很大程度是O(1)的时间复杂度。
+- 空间上。因为是一个内化的方式，所有相关的字符串是共享一块内存。这极大的节省了相同字符串带来的内存消耗。
+- 合并相同的字符串可以大量减少内存占用，缩短比较字符串的时间。因为相同的字符串只需要保存一份在内存中，当用这个字符串做键匹配时，比
+较字符串只需要比较地址是否相同就够了，而不必逐字节比较。
+
 ### string 
 - lua字符串内部被分为短字符串和长字符串，长字符串是为了处理http长文本所作出的优化。
 字符串一经被创建就不可改写，Lua的值对象若为字符串类型，则它将以引用方式存在
@@ -50,6 +57,7 @@ typedef struct TString {
 ** metamethods, as these strings must be internalized;
 ** #("function") = 8, #("__newindex") = 10.)
 */
+//短字符串最大长度 大于40即为长字符串
 #if !defined(LUAI_MAXSHORTLEN)
 #define LUAI_MAXSHORTLEN	40
 #endif
@@ -242,7 +250,41 @@ int luaS_eqlngstr (TString *a, TString *b) {
 
 #### 字符串的remove
 - 我们知道短字符是被global_state的`strt`链表上等到GC单步执行的时候会调用到这函数`sweepstep` -> `sweeplist`
+
+```lua
+local str = "hello"
+str = nil
+```
+luaS_remove 这个函数，是在gc阶段删除掉字符串的时候，会调用的
+
+```c
+void luaS_remove (lua_State *L, TString *ts) {
+  stringtable *tb = &G(L)->strt;
+  TString **p = &tb->hash[lmod(ts->hash, tb->size)];
+  while (*p != ts)  /* find previous element */
+    p = &(*p)->u.hnext;
+  *p = (*p)->u.hnext;  /* remove element from its list */
+  tb->nuse--;
+}
+```
+目前网上传了一份关于`lstring.c`这个文件的中文注释，其中对这个函数的注释如下：
+```c
+// 从全局变量就是global_State的strt成员里面移除特定字符串
+// 首先得到tb，指向strt数组，然后再通过tb的hash数组通过提供tb的长度和字符串的hash，来找到字符串属于哪个链表
+// 然后一直循环，直到找到等于ts的，然后就把这个字符串的地址给抹去了(不会内存泄漏？？？）
+```
+确实，但看这个函数，会造成内存泄露，原来持有这个对象的指针变成了一个悬空指针。
+但是，在`lgc.c`中freeobj这个函数的调用处可以看到，在remove之后，紧接着释放掉了该对象的内存。这也正符合一个函数只做一件事情的原则。
+```c
+luaS_remove(L, gco2ts(o));  /* remove it from hash table */
+luaM_freemem(L, o, sizelstring(gco2ts(o)->shrlen));
 ```
 
-```
+## 参考文章：
+https://www.cnblogs.com/heartchord/p/4561308.html
 
+https://manistein.github.io/blog/post/program/build-a-lua-interpreter/%E6%9E%84%E5%BB%BAlua%E8%A7%A3%E9%87%8A%E5%99%A8part4/
+
+http://lua-users.org/lists/lua-l/2012-01/msg00497.html
+
+https://blog.csdn.net/u013517637/article/details/79002243 

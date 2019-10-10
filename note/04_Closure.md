@@ -2,6 +2,34 @@
 
 ---
 
+### UpVal
+`UpVal`是一个比较特殊的类型，在lua编程，已经写C或者和lua交互的代码时，都看不到这个类型。它是为了解决多个闭包共享一个upvalue的情况。实际上是对一个upvalue的引用。
+
+为什么`TUPVAL`会有open和closed两种状态？
+
+#### open
+调用 luaF_newLclosure 生成完一个 Lua Closure 后，会去填那张 upvalue 表。当 upvalue 尚在堆栈上时，其实是调用 luaF_findupval 去生成一个对堆栈上的特定值之引用的 TUPVAL 对象的。luaF_findupval 的实现不再列在这里，它的主要作用就是保证对堆栈相同位置的引用之生成一次。生成的这个对象就是 open 状态的。所有 open 的 TUPVAL 用一个链表串起来，挂在 global state 的 openupval 中。
+
+#### close
+一旦函数返回，某些堆栈上的变量就会消失，这时，还被某些 upvalue 引用的变量就必须找个地方妥善安置。这个安全的地方就是 TUPVAL 结构之中。修改引用指针的结果，就被认为是 close 了这个 TUPVAL 。相关代码可以去看 lfunc.c 中 luaF_close 的实现。
+
+```c
+/*
+** Upvalues for Lua closures
+*/
+struct UpVal {
+  TValue *v;  /* points to stack or to its own value */
+  lu_mem refcount;  /* reference counter */
+  union {
+    struct {  /* (when open) */
+      UpVal *next;  /* linked list */
+      int touched;  /* mark to avoid cycles with dead threads */
+    } open;
+    TValue value;  /* the value (when closed) */
+  } u;
+};
+```
+
 ### 闭包
 - 一个简单的闭包如下：
 	```
@@ -95,3 +123,7 @@ typedef union Closure {
 } Closure;
 
 ```
+
+---------------
+## 参考文章：
+https://blog.csdn.net/MaximusZhou/article/details/44280109 函数和闭包-概念、应用和实现原理

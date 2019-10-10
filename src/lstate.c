@@ -102,7 +102,7 @@ void luaE_setdebt (global_State *g, l_mem debt) {
   lua_assert(tb > 0);
   if (debt < tb - MAX_LMEM)
     debt = tb - MAX_LMEM;  /* will make 'totalbytes == MAX_LMEM' */
-  g->totalbytes = tb - debt;
+  g->totalbytes = tb - debt; //负值 负债
   g->GCdebt = debt;
 }
 
@@ -207,7 +207,7 @@ static void f_luaopen (lua_State *L, void *ud) {
   UNUSED(ud);
   stack_init(L, L);  /* init stack */
   init_registry(L, g); // 初始化主线程的数据栈
-  luaS_init(L); // 初始化注册表
+  luaS_init(L); // 初始化字符串hash
   luaT_init(L); // 初始化原表用的字符串
   luaX_init(L); // 初始化词法分析用的串 token
   g->gcrunning = 1;  /* allow gc */

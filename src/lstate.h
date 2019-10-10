@@ -138,21 +138,21 @@ typedef struct global_State {
   lua_Alloc frealloc;  /* function to reallocate memory */
   void *ud;         /* auxiliary data to 'frealloc' 作为分配内存的辅助数据 */
   l_mem totalbytes;  /* number of bytes currently allocated - GCdebt */
-  l_mem GCdebt;  /* bytes allocated not yet compensated by the collector  收集器尚未补偿分配的字节 */
-  lu_mem GCmemtrav;  /* memory traversed by the GC */ // GC遍历的内存
-  lu_mem GCestimate;  /* an estimate of the non-garbage memory in use */
-  stringtable strt;  /* hash table for strings */
+  l_mem GCdebt;  /* bytes allocated not yet compensated by the collector */ //可以为负数的变量，主要用于控制gc触发时机，大于0时才能触发gc
+  lu_mem GCmemtrav;  /* memory traversed by the GC */ // GC遍历的内存，当值大于单步执行的内存上仙是，gc终止
+  lu_mem GCestimate;  /* an estimate of the non-garbage memory in use */ //正在使用的非垃圾回收的内存估计值
+  stringtable strt;  /* hash table for strings */ //所有的短字符串都会均会放到strt的hash桶中
   TValue l_registry;
   unsigned int seed;  /* randomized seed for hashes */
-  lu_byte currentwhite;
-  lu_byte gcstate;  /* state of garbage collector */
+  lu_byte currentwhite; //当前gc的白色状态 10和01中的一种，在atomic阶段最后切换状态
+  lu_byte gcstate;  /* state of garbage collector */ // gc的状态，定义在lua.h中
   lu_byte gckind;  /* kind of GC running */
   lu_byte gcrunning;  /* true if GC is running */
-  GCObject *allgc;  /* list of all collectable objects */
-  GCObject **sweepgc;  /* current position of sweep in list */
+  GCObject *allgc;  /* list of all collectable objects */ // 单项链表，新建gc对象都要放到这个链表中，放入的方式是链到表的头部
+  GCObject **sweepgc;  /* current position of sweep in list */ //当前sweep的进度
   GCObject *finobj;  /* list of collectable objects with finalizers */
-  GCObject *gray;  /* list of gray objects */
-  GCObject *grayagain;  /* list of objects to be traversed atomically */
+  GCObject *gray;  /* list of gray objects */ //初次转换为gary的对象都会加入到gary链表中
+  GCObject *grayagain;  /* list of objects to be traversed atomically */ //前面已经介绍过，当被标记为black的对象重新指向white对象时，进行barrier会放入到grayagain链表中
   GCObject *weak;  /* list of tables with weak values */
   GCObject *ephemeron;  /* list of ephemeron tables (weak keys) */
   GCObject *allweak;  /* list of all-weak tables */
@@ -175,6 +175,7 @@ typedef struct global_State {
 /*
 ** 'per thread' state
 */
+// 事实上，一个 lua_State 也是一个类型为 thread 的 GCObject
 struct lua_State {
   CommonHeader;
   unsigned short nci;  /* number of items in 'ci' list */

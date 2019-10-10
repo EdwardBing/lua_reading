@@ -142,7 +142,7 @@ typedef struct lua_TValue {
 #define NILCONSTANT {NULL}, LUA_TNIL
 
 
-// 获取TValue的Value部分
+// 获取 TValue 的Value部分
 #define val_(o)   ((o)->value_)
 
 // 获取TValue的tt_部分
@@ -227,7 +227,7 @@ typedef struct lua_TValue {
  
  
 // 在lua里面的值是无关类型的，就是靠下面的操作来让变量类型相互变化
-// 通过改变TValue的tt_和Value里面的具体值（比如：i,n,f,b等）
+// 通过改变 TValue 的tt_和Value里面的具体值（比如：i,n,f,b等）
 // set函数是设置新的值，改变的有tt_
   // chg函数也是改变新的值，但是没有改变tt_
  
@@ -396,10 +396,10 @@ typedef union UTString {
  
 // UserData在lua中和string类似，可以看成是拥有独立元表，不被内部化，也不需要追加\0的字符串
   // 因为UserData也是需要GC的，所以这里加上CommonHeader
-  // ttuv_用来标记这个数据是UserData数据
+  // ttuv_ 用来标记这个数据是UserData数据
   // 因为UserData数据拥有独立元表 所以这里多了一个*metatabel的数据
   // len用于记录UserData长度
-  // user_参考上面对Value联合体的解析
+  // user_参考上面对 Value 联合体的解析
 typedef struct Udata {
   CommonHeader;
   lu_byte ttuv_;  /* user value's tag */
@@ -435,8 +435,8 @@ typedef union UUdata {
     iu->user_ = io->value_; iu->ttuv_ = rttype(io); \
     checkliveness(L,io); }
  
-// getuservalue把u的值赋给o
-// settt_(o,t)更改o的类型为t
+// getuservalue 把u的值赋给o
+// settt_(o,t) 更改o的类型为t
 #define getuservalue(L,u,o) \
   { TValue *io=(o); const Udata *iu = (u); \
     io->value_ = iu->user_; settt_(io, iu->ttuv_); \
@@ -446,10 +446,10 @@ typedef union UUdata {
 /*
 ** Description of an upvalue for function prototypes
 */
-    // 用来记录upvalue的调试信息
-    // name记录名字
-    // instack记录是否在堆栈中
-    // idx记录这个upvalue在函数列表中的索引
+// 用来记录upvalue的调试信息
+// name记录名字
+// instack记录是否在堆栈中
+// idx记录这个upvalue在函数列表中的索引
 typedef struct Upvaldesc {
   TString *name;  /* upvalue name (for debug information) */
   lu_byte instack;  /* whether it is in stack (register) */
